@@ -26,9 +26,9 @@ Resources:
   PDFSourceBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: source-bucket-file-encrypter
+      BucketName: isuranga-source-bucket-file-encrypter
 
   EncryptedPDFBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: destination-bucket-file-encrypter
+      BucketName: isuranga-destination-bucket-file-encrypter
