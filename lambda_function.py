@@ -20,7 +20,12 @@ def lambda_handler(event, context):
             s3_client.download_file(bucket, key, download_path)
             encrypt_pdf(download_path, upload_path)
             encrypted_key = add_encrypted_suffix(key)
-            s3_client.upload_file(upload_path, f'{bucket}-encrypted', encrypted_key)
+            destination_bucket = "isuranga-destination-bucket-file-encrypter"
+            s3_client.upload_file(
+                upload_path,
+                destination_bucket,
+                encrypted_key
+            )
 
 # Define the function to encrypt the PDF file with a password
 def encrypt_pdf(file_path, encrypted_file_path):
