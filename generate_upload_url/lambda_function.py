@@ -33,6 +33,11 @@ def lambda_handler(event, context):
 
     return {
         'statusCode': 200,
+        'headers': {
+            'Access-Control-Allow-Origin': 'http://localhost:4200',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        },
         'body': json.dumps({
             'uploadUrl': upload_url,
             'fileKey': file_key
