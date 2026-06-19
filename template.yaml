@@ -43,6 +43,7 @@ Resources:
       MemorySize: 128
       Policies:
         - AmazonS3FullAccess
+        - AmazonDynamoDBFullAccess
       Events:
         UploadApi:
           Type: Api
