@@ -66,6 +66,23 @@ Resources:
           Type: Api
           Properties:
             Path: /files
+            Method: get  
+
+  GenerateDownloadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GenerateDownloadUrl
+      CodeUri: generate_download_url/
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - AmazonS3FullAccess
+        - AmazonDynamoDBFullAccess
+      Events:
+        DownloadApi:
+          Type: Api
+          Properties:
+            Path: /download/{jobId}
             Method: get          
 
   PDFSourceBucket:
