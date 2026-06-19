@@ -51,6 +51,22 @@ Resources:
           Properties:
             Path: /upload-url
             Method: post
+            
+  ListFilesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ListFiles
+      CodeUri: list_files/
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - AmazonDynamoDBFullAccess
+      Events:
+        FilesApi:
+          Type: Api
+          Properties:
+            Path: /files
+            Method: get          
 
   PDFSourceBucket:
     Type: AWS::S3::Bucket
