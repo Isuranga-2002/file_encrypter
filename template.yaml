@@ -23,6 +23,7 @@ Resources:
         LogFormat: JSON
       Policies:
         - AmazonS3FullAccess
+        - AmazonDynamoDBFullAccess
       Events:
         S3Event:
           Type: S3

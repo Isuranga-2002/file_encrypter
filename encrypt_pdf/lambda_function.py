@@ -1,48 +1,135 @@
 from pypdf import PdfReader, PdfWriter
 import uuid
-import os
 from urllib.parse import unquote_plus
 import boto3
 
-# Create the S3 client to download and upload objects from S3
+# S3
 s3_client = boto3.client('s3')
 
+# DynamoDB
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('EncryptionJobs')
+
+DESTINATION_BUCKET = "isuranga-destination-bucket-file-encrypter"
+
+
 def lambda_handler(event, context):
-    # Iterate over the S3 event object and get the key for all uploaded files
+
     for record in event['Records']:
+
         bucket = record['s3']['bucket']['name']
-        key = unquote_plus(record['s3']['object']['key']) # Decode the S3 object key to remove any URL-encoded characters
-        download_path = f'/tmp/{uuid.uuid4()}.pdf' # Create a path in the Lambda tmp directory to save the file to
-        upload_path = f'/tmp/converted-{uuid.uuid4()}.pdf' # Create another path to save the encrypted file to
+        key = unquote_plus(record['s3']['object']['key'])
 
-        # If the file is a PDF, encrypt it and upload it to the destination S3 bucket
+        download_path = f'/tmp/{uuid.uuid4()}.pdf'
+        upload_path = f'/tmp/converted-{uuid.uuid4()}.pdf'
+
         if key.lower().endswith('.pdf'):
-            s3_client.download_file(bucket, key, download_path)
-            encrypt_pdf(download_path, upload_path)
-            encrypted_key = add_encrypted_suffix(key)
-            destination_bucket = "isuranga-destination-bucket-file-encrypter"
-            s3_client.upload_file(
-                upload_path,
-                destination_bucket,
-                encrypted_key
-            )
 
-# Define the function to encrypt the PDF file with a password
-def encrypt_pdf(file_path, encrypted_file_path):
+            try:
+
+                # Extract Job ID
+                # uploads/{jobId}/filename.pdf
+                job_id = key.split('/')[1]
+
+                # Download original PDF
+                s3_client.download_file(
+                    bucket,
+                    key,
+                    download_path
+                )
+
+                # Encrypt PDF
+                encrypt_pdf(
+                    download_path,
+                    upload_path
+                )
+
+                # Create encrypted filename
+                encrypted_key = add_encrypted_suffix(key)
+
+                # Upload encrypted PDF
+                s3_client.upload_file(
+                    upload_path,
+                    DESTINATION_BUCKET,
+                    encrypted_key
+                )
+
+                # Update DynamoDB
+                table.update_item(
+                    Key={
+                        'jobId': job_id
+                    },
+                    UpdateExpression="""
+                        SET #status = :status,
+                            encryptedKey = :encryptedKey
+                    """,
+                    ExpressionAttributeNames={
+                        '#status': 'status'
+                    },
+                    ExpressionAttributeValues={
+                        ':status': 'COMPLETED',
+                        ':encryptedKey': encrypted_key
+                    }
+                )
+
+                print(
+                    f"Successfully encrypted and updated job {job_id}"
+                )
+
+            except Exception as e:
+
+                print(f"Error processing file: {str(e)}")
+
+                try:
+
+                    table.update_item(
+                        Key={
+                            'jobId': job_id
+                        },
+                        UpdateExpression="""
+                            SET #status = :status
+                        """,
+                        ExpressionAttributeNames={
+                            '#status': 'status'
+                        },
+                        ExpressionAttributeValues={
+                            ':status': 'FAILED'
+                        }
+                    )
+
+                except Exception as db_error:
+
+                    print(
+                        f"DynamoDB update failed: {str(db_error)}"
+                    )
+
+
+def encrypt_pdf(
+    file_path,
+    encrypted_file_path
+):
+
     reader = PdfReader(file_path)
+
     writer = PdfWriter()
 
     for page in reader.pages:
         writer.add_page(page)
 
-    # Add a password to the new PDF
     writer.encrypt("my-secret-password")
 
-    # Save the new PDF to a file
-    with open(encrypted_file_path, "wb") as file:
+    with open(
+        encrypted_file_path,
+        "wb"
+    ) as file:
+
         writer.write(file)
 
-# Define a function to add a suffix to the original filename after encryption
+
 def add_encrypted_suffix(original_key):
+
     filename, extension = original_key.rsplit('.', 1)
-    return f'{filename}_encrypted.{extension}'
+
+    return (
+        f"{filename}_encrypted.{extension}"
+    )

@@ -37,7 +37,7 @@ def lambda_handler(event, context):
         job_id = str(uuid.uuid4())
 
         # Create unique S3 object key
-        file_key = f"uploads/{job_id}-{filename}"
+        file_key = f"uploads/{job_id}/{filename}"
 
         # Save record in DynamoDB
         table.put_item(
