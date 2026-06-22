@@ -28,8 +28,8 @@ def lambda_handler(event, context):
             try:
 
                 # Extract Job ID
-                # uploads/{jobId}/filename.pdf
-                job_id = key.split('/')[1]
+                # uploads/{user_id}/{jobId}/filename.pdf
+                job_id = key.split('/')[2]
 
                 # Download original PDF
                 s3_client.download_file(

@@ -8,7 +8,14 @@ table = dynamodb.Table('EncryptionJobs')
 
 def lambda_handler(event, context):
 
-    response = table.scan()
+    from boto3.dynamodb.conditions import Key
+
+    user_id = event['queryStringParameters']['userId']
+
+    response = table.query(
+        IndexName='userId-index',
+        KeyConditionExpression=Key('userId').eq(user_id)
+    )    
 
     return {
         'statusCode': 200,

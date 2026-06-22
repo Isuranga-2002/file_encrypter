@@ -2,6 +2,7 @@ import json
 import boto3
 import uuid
 
+
 # DynamoDB
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('EncryptionJobs')
@@ -19,6 +20,7 @@ def lambda_handler(event, context):
         body = json.loads(event.get('body', '{}'))
 
         filename = body.get('filename')
+        user_id = body.get('userId')
 
         if not filename:
             return {
@@ -32,17 +34,26 @@ def lambda_handler(event, context):
                     'message': 'filename is required'
                 })
             }
+        
+        if not user_id:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'message': 'userId is required'
+                })
+            }
 
         # Generate Job ID
         job_id = str(uuid.uuid4())
 
         # Create unique S3 object key
-        file_key = f"uploads/{job_id}/{filename}"
+        file_key = f"uploads/{user_id}/{job_id}/{filename}"
 
         # Save record in DynamoDB
         table.put_item(
             Item={
                 'jobId': job_id,
+                'userId': user_id,
                 'fileName': filename,
                 'fileKey': file_key,
                 'status': 'PROCESSING'
